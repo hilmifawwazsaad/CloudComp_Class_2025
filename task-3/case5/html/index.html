@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+</head>
+
+<body>
+    <center>
+        <h1>QR Code Generator</h1>
+
+        <p id="message"></p>
+
+        <br>
+        <label>Enter URL or Text:</label><br>
+        <input type="text" id="urlInput" size="50" placeholder="https://example.com"><br><br>
+
+        <button id="generateBtn">Generate QR Code</button>
+
+        <p id="loading"></p>
+
+        <div id="qrPreview">
+            <img id="qrImage" src="" alt="">
+        </div>
+
+        <button id="downloadBtn" style="display:none;">Download QR Code</button>
+    </center>
+
+    <script>
+        const urlInput = document.getElementById('urlInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const qrPreview = document.getElementById('qrPreview');
+        const qrImage = document.getElementById('qrImage');
+        const message = document.getElementById('message');
+        const loading = document.getElementById('loading');
+
+        let currentFilename = '';
+
+        generateBtn.addEventListener('click', async () => {
+            const data = urlInput.value.trim();
+
+            if (!data) {
+                message.textContent = 'Please enter a URL or text!';
+                return;
+            }
+
+            generateBtn.disabled = true;
+            loading.textContent = 'Generating QR Code...';
+            qrImage.src = '';
+            downloadBtn.style.display = 'none';
+            message.textContent = '';
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ data: data })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    currentFilename = result.file;
+                    qrImage.src = `/qrcode/${currentFilename}`;
+                    downloadBtn.style.display = 'inline';
+                    message.textContent = 'QR Code generated successfully!';
+                } else {
+                    message.textContent = result.error || 'Failed to generate QR Code';
+                }
+            } catch (error) {
+                message.textContent = 'Network error. Please try again.';
+                console.error('Error:', error);
+            } finally {
+                generateBtn.disabled = false;
+                loading.textContent = '';
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (currentFilename) {
+                const link = document.createElement('a');
+                link.href = `/qrcode/${currentFilename}`;
+                link.download = `qrcode_${currentFilename}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        });
+
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                generateBtn.click();
+            }
+        });
+    </script>
+</body>
+
+</html>
